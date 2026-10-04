@@ -1,0 +1,159 @@
+// InfinityBox database schema (Postgres on Supabase).
+// Users live in Supabase Auth (auth.users); `Profile` mirrors the bits we need.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled connection, used by the app
+  directUrl = env("DIRECT_URL") // direct connection, used by migrations
+}
+
+model Profile {
+  id        String    @id @db.Uuid // = auth.users.id
+  email     String
+  fullName  String?
+  avatarUrl String?
+  createdAt DateTime  @default(now())
+  bookings  Booking[]
+
+  @@map("profiles")
+}
+
+/// Movies currently in theaters (a snapshot of TMDB data, refreshed by the seed script).
+model Movie {
+  id           Int      @id // TMDB movie id
+  title        String
+  overview     String
+  posterPath   String?
+  backdropPath String?
+  runtime      Int?
+  genres       String[]
+  rating       Float
+  language     String
+  releaseDate  String?
+  popularity   Float    @default(0)
+  shows        Show[]
+
+  @@map("movies")
+}
+
+model Theater {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  address   String
+  amenities String[]
+  screens   Screen[]
+
+  @@index([city])
+  @@map("theaters")
+}
+
+model Screen {
+  id        String  @id @default(cuid())
+  theaterId String
+  name      String
+  theater   Theater @relation(fields: [theaterId], references: [id], onDelete: Cascade)
+  seats     Seat[]
+  shows     Show[]
+
+  @@unique([theaterId, name])
+  @@map("screens")
+}
+
+enum SeatTier {
+  RECLINER
+  PREMIUM
+  REGULAR
+}
+
+model Seat {
+  id          String       @id @default(cuid())
+  screenId    String
+  row         String // "A", "B", ...
+  number      Int
+  tier        SeatTier
+  screen      Screen       @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  bookedSeats BookedSeat[]
+
+  @@unique([screenId, row, number])
+  @@map("seats")
+}
+
+enum ShowFormat {
+  TWO_D
+  THREE_D
+  IMAX
+}
+
+model Show {
+  id            String       @id @default(cuid())
+  screenId      String
+  movieId       Int
+  startsAt      DateTime
+  format        ShowFormat   @default(TWO_D)
+  language      String
+  // Prices in paise (₹1 = 100 paise) to avoid floating-point money bugs.
+  priceRecliner Int
+  pricePremium  Int
+  priceRegular  Int
+  screen        Screen       @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  movie         Movie        @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  bookings      Booking[]
+  bookedSeats   BookedSeat[]
+
+  @@index([movieId, startsAt])
+  @@map("shows")
+}
+
+enum BookingStatus {
+  PENDING // seats held, waiting for payment
+  CONFIRMED // payment verified
+  EXPIRED // hold timed out (or replaced) before payment
+  FAILED // payment arrived too late or failed; refunded
+  CANCELLED // user released the seats
+}
+
+model Booking {
+  id                String        @id @default(cuid())
+  code              String        @unique // human-friendly ticket code, e.g. IBX-7K3P9Q
+  userId            String        @db.Uuid
+  showId            String
+  status            BookingStatus @default(PENDING)
+  subtotal          Int // paise
+  convenienceFee    Int // paise
+  total             Int // paise
+  holdExpiresAt     DateTime
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?       @unique
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  show              Show          @relation(fields: [showId], references: [id], onDelete: Cascade)
+  seats             BookedSeat[]
+
+  @@index([userId, createdAt])
+  @@index([showId, status])
+  @@map("bookings")
+}
+
+/// One row per seat per booking. The unique (showId, seatId) constraint is the
+/// final guarantee against double-booking: the database itself rejects a
+/// second hold on the same seat for the same show, even under a race.
+model BookedSeat {
+  id        String  @id @default(cuid())
+  bookingId String
+  showId    String
+  seatId    String
+  price     Int // paise, snapshot at booking time
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  show      Show    @relation(fields: [showId], references: [id], onDelete: Cascade)
+  seat      Seat    @relation(fields: [seatId], references: [id], onDelete: Cascade)
+
+  @@unique([showId, seatId])
+  @@map("booked_seats")
+}

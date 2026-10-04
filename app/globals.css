@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+/* ---------- Design tokens ---------- */
+:root {
+  --background: #07070a;
+  --foreground: #f4f4f5;
+  --surface: #0f0f15;
+  --surface-2: #17171f;
+  --muted: #a1a1aa;
+  --line: rgb(255 255 255 / 0.08);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: #f43f5e;
+  --color-brand-2: #fb923c;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: #f43f5e;
+  color: #fff;
+}
+
+/* ---------- Reusable component classes ---------- */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold whitespace-nowrap transition duration-200 select-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-gradient-to-r from-brand to-brand-2 text-white shadow-lg shadow-brand/25 hover:shadow-xl hover:shadow-brand/40 hover:brightness-110;
+  }
+  .btn-light {
+    @apply bg-white text-black hover:bg-white/85;
+  }
+  .btn-glass {
+    @apply border border-white/15 bg-white/10 text-white backdrop-blur-md hover:bg-white/20;
+  }
+  .btn-ghost {
+    @apply text-muted hover:bg-white/5 hover:text-white;
+  }
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-white/[0.04] px-4 py-3 text-white placeholder:text-zinc-500 transition outline-none focus:border-brand/60 focus:bg-white/[0.06] focus:ring-4 focus:ring-brand/15;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand to-brand-2 bg-clip-text text-transparent;
+  }
+  .section-title {
+    @apply px-4 text-lg font-bold tracking-tight text-zinc-100 sm:px-12 sm:text-2xl;
+  }
+}
+
+/* Outlined giant numbers for the Top 10 row */
+.stroke-number {
+  color: transparent;
+  -webkit-text-stroke: 3px rgb(255 255 255 / 0.28);
+  transition: -webkit-text-stroke-color 0.3s;
+}
+.group:hover .stroke-number {
+  -webkit-text-stroke-color: #fb923c;
+}
+
+/* Hide scrollbars on horizontal rows while keeping them scrollable */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- Animations ---------- */
+@keyframes ken-burns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+.animate-ken-burns {
+  animation: ken-burns 14s ease-out forwards;
+}
+
+@keyframes marquee-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+.animate-marquee-up {
+  animation: marquee-up 60s linear infinite;
+}
+
+@keyframes progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.animate-progress {
+  transform-origin: left;
+  animation: progress linear forwards;
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.animate-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Printing a ticket ---------- */
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}
